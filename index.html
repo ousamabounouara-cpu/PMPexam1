@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PMP Practice Exam Simulator</title>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--text:#1d2433;--muted:#5d6678;--brand:#1f4fd8;--brand-d:#183db0;--ok:#157f3b;--bad:#c0392b;--warn:#b7791f;--line:#dde2ec}
+@media (prefers-color-scheme:dark){:root{--bg:#10141c;--card:#1a2030;--text:#e8ecf4;--muted:#9aa4b8;--brand:#5b8cff;--brand-d:#86a8ff;--ok:#4ac26b;--bad:#ff7b6b;--warn:#e5b04a;--line:#2b3348}}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:16px}
+h1{font-size:1.6rem;margin:0 0 8px}h2{font-size:1.2rem;margin:0 0 12px}
+.muted{color:var(--muted)}
+input[type=text],input[type=password]{width:100%;padding:11px 12px;margin:6px 0 14px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--bg);color:var(--text)}
+button{font:inherit;cursor:pointer;border:1px solid var(--brand);background:var(--brand);color:#fff;padding:10px 20px;border-radius:8px;font-weight:600}
+button:hover{background:var(--brand-d)}button.ghost{background:transparent;color:var(--brand)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.err{color:var(--bad);min-height:1.4em;margin:0 0 8px}
+.hidden{display:none!important}
+ul.info li{margin:6px 0}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px}
+.top .in{max-width:860px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:1.25rem}.timer.low{color:var(--bad)}
+.case{background:var(--bg);border-left:4px solid var(--brand);padding:12px 16px;border-radius:6px;margin-bottom:16px;max-height:260px;overflow:auto;font-size:.95rem}
+.case p{margin:0 0 10px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin:8px 0;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.opt:hover{border-color:var(--brand)}.opt.sel{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent)}
+.opt input{margin-top:5px}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.nav{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-top:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;margin-top:10px}
+.grid button{padding:6px 0;background:var(--card);color:var(--text);border:1px solid var(--line);font-weight:500}
+.grid button.ans{background:color-mix(in srgb,var(--brand) 22%,var(--card))}
+.grid button.flag{border-color:var(--warn);box-shadow:inset 0 0 0 2px var(--warn)}
+.grid button.cur{outline:2px solid var(--brand)}
+.score{font-size:2.4rem;font-weight:800}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.8rem;font-weight:700}
+.tag.ok{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}.tag.bad{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
+.big{font-size:3rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<!-- 0. PAYMENT -->
+<div id="pay" class="wrap hidden">
+  <div class="card" style="max-width:520px;margin:8vh auto 0;text-align:center">
+    <h1>PMP Practice Exam 1</h1>
+    <p class="muted">180 scenario-based questions &middot; 4-hour timed exam &middot; one 20-minute break &middot; full answer review</p>
+    <div id="price" style="font-size:2.4rem;font-weight:800;margin:14px 0"></div>
+    <p>One-time payment for full access to this practice exam. After your payment is confirmed you will receive a <b>username and password</b> by email, then come back here and sign in.</p>
+    <div id="paypal-container" style="min-height:60px;margin:6px 0"></div>
+    <button id="payBtn" class="hidden" style="width:100%">Pay to get access</button>
+    <p id="payNote" class="muted" style="min-height:1.4em"></p>
+    <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+    <button class="ghost" id="haveLogin" style="width:100%">I already have my login &rarr;</button>
+  </div>
+</div>
+
+<!-- 1. LOGIN -->
+<div id="login" class="wrap hidden">
+  <div class="card" style="max-width:420px;margin:8vh auto 0">
+    <h1>PMP Practice Exam</h1>
+    <p class="muted">Sign in to start your practice session.</p>
+    <label>Username<input id="u" type="text" autocomplete="username"></label>
+    <label>Password<input id="p" type="password" autocomplete="current-password"></label>
+    <p id="loginErr" class="err"></p>
+    <button id="loginBtn" style="width:100%">Sign in</button>
+    <button class="ghost" id="backPay" style="width:100%;margin-top:8px">&larr; Back to payment page</button>
+  </div>
+</div>
+
+<!-- 2. INSTRUCTIONS -->
+<div id="intro" class="wrap hidden">
+  <div class="card">
+    <h1>Welcome to the PMP Practice Exam Simulator</h1>
+    <p class="muted">Read the guidelines below, then press Start when you are ready.</p>
+    <h2>About the exam</h2>
+    <ul class="info">
+      <li><b>180 scenario-based questions</b> covering People, Process and Business Environment, including case-study questions and multiple-select questions.</li>
+      <li><b>Exam time: 4 hours (240 minutes).</b> The countdown is always visible at the top of the screen. When it reaches zero the exam is submitted automatically.</li>
+      <li><b>One break: 20 minutes.</b> Press <i>Take break</i> at any point (you will also be reminded at question 90). The exam clock is paused during the break, and the break ends automatically after 20 minutes or when you press <i>Resume exam</i>.</li>
+      <li>Use <b>NEXT &rarr;</b> to go to the next question and <b>&larr; Previous</b> to go back. You can <i>flag</i> a question for review and jump to any question from the navigator.</li>
+      <li>Multiple-select questions say how many answers to choose; all correct answers are required to score the question.</li>
+      <li>Your progress is saved in this browser, so a page refresh will not lose your answers or time.</li>
+      <li>Results and the correct answers are shown only after you finish.</li>
+    </ul>
+    <p><b>Tips:</b> Pace yourself at roughly 80 seconds per question, answer every question (there is no penalty for guessing), and flag the hard ones to revisit.</p>
+    <button id="startBtn">Start exam</button>
+    <button id="resetBtn" class="ghost hidden" style="margin-left:8px">Discard saved attempt</button>
+  </div>
+</div>
+
+<!-- 3. EXAM -->
+<div id="exam" class="hidden">
+  <div class="top"><div class="in">
+    <div><b id="qpos"></b> <span class="muted" id="answered"></span></div>
+    <div class="timer" id="clock">04:00:00</div>
+    <div>
+      <button class="ghost" id="breakBtn">Take break (20:00)</button>
+      <button class="ghost" id="flagBtn">Flag</button>
+      <button id="finishBtn">Finish</button>
+    </div>
+  </div></div>
+  <div class="wrap">
+    <div class="card">
+      <div id="caseBox" class="case hidden"></div>
+      <p id="qtext" style="font-size:1.08rem;margin-top:0"></p>
+      <p id="qhint" class="muted" style="margin:0 0 6px"></p>
+      <div id="opts"></div>
+      <div class="nav">
+        <button class="ghost" id="prevBtn">&larr; Previous</button>
+        <button id="nextBtn">NEXT &rarr;</button>
+      </div>
+    </div>
+    <div class="card"><b>Question navigator</b> <span class="muted">(blue = answered, orange outline = flagged)</span><div class="grid" id="grid"></div></div>
+  </div>
+</div>
+
+<!-- BREAK -->
+<div id="breakScreen" class="wrap hidden">
+  <div class="card" style="text-align:center;margin-top:10vh">
+    <h1>Break time</h1>
+    <p class="muted">Your exam clock is paused. Stretch, drink some water, and rest your eyes.</p>
+    <div class="big" id="breakClock">20:00</div>
+    <p class="muted">The exam resumes automatically when the break ends.</p>
+    <button id="resumeBtn">Resume exam</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="wrap hidden">
+  <div class="card" style="text-align:center">
+    <h1>Exam complete</h1>
+    <div class="score" id="scoreBig"></div>
+    <p class="muted" id="scoreSub"></p>
+    <p class="muted">The real PMP exam does not publish a fixed passing percentage; many candidates aim for 75&ndash;80%+ on practice exams.</p>
+    <button id="againBtn">Take the exam again</button>
+  </div>
+  <div class="card"><h2>Review</h2>
+    <label><input type="checkbox" id="onlyWrong"> Show only incorrect / unanswered</label>
+    <div id="review"></div>
+  </div>
+</div>
+
+<script src="questions.js"></script>
+<script>
+/* ---- Config ---- */
+const EXAM_MS = 4 * 60 * 60 * 1000;      // 4 hours
+const BREAK_MS = 20 * 60 * 1000;         // 20-minute break
+const BREAK_REMINDER_AT = 90;            // remind at question 90
+// SHA-256 of credentials (client-side gate only - see README)
+const USER_HASH = "859105070fd482fe9b6214a3c6083be2e3830425cd9e0458d9b6d0624d135da4";
+const PASS_HASH = "fa870a2658fc49993579f7471d86d0a54ca1267e52d3f9be2395d6f3689bdcc7";
+/* ---- Payment settings: EDIT THESE TWO LINES ---- */
+const PAYPAL_CLIENT_ID = "BAA02rKksmJgNMIQ6XCBiL9ND2JR3ZS9vphsBdBjRpgjCHkyQeMvi_66vpC2H-bb5Rv9mBFhKioYmuSOWc";
+const HOSTED_BUTTON_ID = "";   // <-- paste the Hosted Button ID from PayPal (Pay Links and Buttons -> your button)
+const PAYMENT_URL = "";      // hosted checkout link (Stripe Payment Link, PayPal, Gumroad, ...)
+const PRICE_LABEL = "$9.99";   // one-time payment, shown on the payment page
+const KEY = "pmp_sim_state_v1", AUTH = "pmp_sim_auth";
+
+const Q = window.QUESTIONS, $ = id => document.getElementById(id);
+let S = null, tick = null;
+
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, "0")).join("");
+const show = id => { ["pay","login","intro","exam","breakScreen","results"].forEach(x => $(x).classList.toggle("hidden", x !== id)); window.scrollTo(0,0); };
+const fmt = ms => { ms = Math.max(0, Math.ceil(ms/1000)); const h = Math.floor(ms/3600), m = Math.floor(ms%3600/60), s = ms%60; return (h ? String(h).padStart(2,"0")+":" : "") + String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"); };
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } };
+
+/* ---- Login ---- */
+async function doLogin() {
+  const ok = (await sha($("u").value.trim())) === USER_HASH && (await sha($("p").value)) === PASS_HASH;
+  if (!ok) { $("loginErr").textContent = "Incorrect username or password."; return; }
+  sessionStorage.setItem(AUTH, "1"); goIntro();
+}
+$("loginBtn").onclick = doLogin;
+["u","p"].forEach(i => $(i).addEventListener("keydown", e => e.key === "Enter" && doLogin()));
+
+function goIntro() {
+  const saved = load();
+  if (saved && !saved.finished) {
+    S = saved; $("startBtn").textContent = "Resume saved exam"; $("resetBtn").classList.remove("hidden");
+  } else { S = null; $("startBtn").textContent = "Start exam"; $("resetBtn").classList.add("hidden"); }
+  show("intro");
+}
+$("resetBtn").onclick = () => { if (confirm("Discard your saved attempt and start fresh?")) { localStorage.removeItem(KEY); S = null; goIntro(); } };
+
+/* ---- Exam ---- */
+$("startBtn").onclick = () => {
+  if (!S) S = { cur: 0, answers: {}, flags: {}, remaining: EXAM_MS, endsAt: null, breakUsed: false, breakEndsAt: null, finished: false, remindShown: false };
+  S.endsAt = Date.now() + S.remaining;
+  if (S.breakEndsAt) return enterBreak(true);
+  show("exam"); render(); startTick(); save();
+};
+
+function startTick() { clearInterval(tick); tick = setInterval(onTick, 500); onTick(); }
+function onTick() {
+  if (S.breakEndsAt) {
+    const left = S.breakEndsAt - Date.now(); $("breakClock").textContent = fmt(left);
+    if (left <= 0) endBreak(); return;
+  }
+  S.remaining = S.endsAt - Date.now();
+  $("clock").textContent = fmt(S.remaining); $("clock").classList.toggle("low", S.remaining < 15*60*1000);
+  if (S.remaining <= 0) { alert("Time is up. Your exam will now be submitted."); finish(); }
+}
+
+function render() {
+  const q = Q[S.cur], sel = S.answers[q.id] || [];
+  $("qpos").textContent = `Question ${S.cur+1} of ${Q.length}`;
+  $("answered").textContent = `· ${Object.keys(S.answers).length} answered`;
+  const cb = $("caseBox");
+  if (q.case) { cb.innerHTML = `<b>${esc(q.caseTitle)}</b>` + q.case.map(p => `<p>${esc(p)}</p>`).join(""); cb.classList.remove("hidden"); } else cb.classList.add("hidden");
+  $("qtext").textContent = q.text;
+  $("qhint").textContent = q.multi ? `Select ${q.answer.length} answers.` : "";
+  $("opts").innerHTML = "";
+  q.options.forEach(o => {
+    const l = document.createElement("label"); l.className = "opt" + (sel.includes(o.key) ? " sel" : "");
+    l.innerHTML = `<input type="${q.multi ? "checkbox" : "radio"}" name="o" ${sel.includes(o.key) ? "checked" : ""}><span><b>${o.key}.</b> ${esc(o.text)}</span>`;
+    l.querySelector("input").onchange = () => pick(q, o.key);
+    $("opts").appendChild(l);
+  });
+  $("prevBtn").disabled = S.cur === 0;
+  $("nextBtn").disabled = S.cur === Q.length - 1;
+  $("flagBtn").textContent = S.flags[q.id] ? "Unflag" : "Flag";
+  $("breakBtn").disabled = S.breakUsed; $("breakBtn").textContent = S.breakUsed ? "Break used" : "Take break (20:00)";
+  $("grid").innerHTML = Q.map((x, i) => `<button class="${S.answers[x.id] ? "ans" : ""} ${S.flags[x.id] ? "flag" : ""} ${i === S.cur ? "cur" : ""}" data-i="${i}">${i+1}</button>`).join("");
+  save();
+}
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function pick(q, key) {
+  let sel = S.answers[q.id] || [];
+  if (q.multi) sel = sel.includes(key) ? sel.filter(k => k !== key) : [...sel, key].slice(-q.answer.length);
+  else sel = [key];
+  if (sel.length) S.answers[q.id] = sel; else delete S.answers[q.id];
+  render();
+}
+function go(i) {
+  S.cur = i; render(); window.scrollTo(0, 0);
+  if (i + 1 === BREAK_REMINDER_AT && !S.breakUsed && !S.remindShown) { S.remindShown = true; save(); setTimeout(() => confirm("You are at the halfway point. Take your 20-minute break now? (The exam clock will pause.)") && startBreak(), 50); }
+}
+$("nextBtn").onclick = () => go(Math.min(Q.length - 1, S.cur + 1));
+$("prevBtn").onclick = () => go(Math.max(0, S.cur - 1));
+$("grid").onclick = e => e.target.dataset.i !== undefined && go(+e.target.dataset.i);
+$("flagBtn").onclick = () => { const id = Q[S.cur].id; S.flags[id] ? delete S.flags[id] : (S.flags[id] = 1); render(); };
+document.addEventListener("keydown", e => {
+  if ($("exam").classList.contains("hidden") || /INPUT|TEXTAREA/.test(e.target.tagName) && e.target.type === "text") return;
+  if (e.key === "ArrowRight") $("nextBtn").click(); if (e.key === "ArrowLeft") $("prevBtn").click();
+});
+
+/* ---- Break ---- */
+function startBreak() {
+  if (S.breakUsed) return;
+  S.remaining = S.endsAt - Date.now(); S.breakUsed = true; S.breakEndsAt = Date.now() + BREAK_MS; save(); enterBreak();
+}
+function enterBreak() { show("breakScreen"); startTick(); }
+function endBreak() {
+  S.breakEndsAt = null; S.endsAt = Date.now() + S.remaining; save(); show("exam"); render(); startTick();
+}
+$("breakBtn").onclick = () => confirm("Start your one 20-minute break? The exam clock will pause.") && startBreak();
+$("resumeBtn").onclick = endBreak;
+
+/* ---- Finish & results ---- */
+$("finishBtn").onclick = () => {
+  const un = Q.length - Object.keys(S.answers).length;
+  if (confirm(un ? `You have ${un} unanswered question(s). Submit the exam anyway?` : "Submit the exam now?")) finish();
+};
+const isRight = q => { const a = (S.answers[q.id] || []).slice().sort().join(""); return a === q.answer; };
+function finish() {
+  clearInterval(tick); S.finished = true; save();
+  const right = Q.filter(isRight).length, pct = Math.round(right / Q.length * 1000) / 10;
+  $("scoreBig").textContent = `${right} / ${Q.length} (${pct}%)`;
+  $("scoreSub").textContent = `Answered ${Object.keys(S.answers).length} of ${Q.length} · Time used ${fmt(EXAM_MS - Math.max(0, S.remaining))}`;
+  renderReview(); show("results");
+}
+function renderReview() {
+  const only = $("onlyWrong").checked;
+  $("review").innerHTML = Q.map((q, i) => {
+    const ok = isRight(q); if (only && ok) return "";
+    const sel = S.answers[q.id] || [];
+    return `<div style="border-top:1px solid var(--line);padding:14px 0">
+      <b>Q${i+1}</b> <span class="tag ${ok ? "ok" : "bad"}">${ok ? "Correct" : sel.length ? "Incorrect" : "Unanswered"}</span>
+      ${q.caseTitle ? `<div class="muted" style="font-size:.85rem">${esc(q.caseTitle)}</div>` : ""}
+      <p>${esc(q.text)}</p>
+      ${q.options.map(o => `<div class="opt ${q.answer.includes(o.key) ? "right" : sel.includes(o.key) ? "wrong" : ""}" style="cursor:default"><span><b>${o.key}.</b> ${esc(o.text)}${sel.includes(o.key) ? " <i>(your answer)</i>" : ""}${q.answer.includes(o.key) ? " ✔" : ""}</span></div>`).join("")}
+    </div>`;
+  }).join("") || "<p class='muted'>Nothing to show.</p>";
+}
+$("onlyWrong").onchange = renderReview;
+$("againBtn").onclick = () => { localStorage.removeItem(KEY); S = null; goIntro(); };
+
+/* ---- Payment screen ---- */
+$("price").textContent = PRICE_LABEL;
+if (HOSTED_BUTTON_ID) {
+  // PayPal hosted button (loads PayPal's SDK only when this page needs it)
+  const sc = document.createElement("script");
+  sc.src = "https://www.paypal.com/sdk/js?client-id=" + PAYPAL_CLIENT_ID + "&components=hosted-buttons&enable-funding=venmo&currency=USD";
+  sc.onload = () => paypal.HostedButtons({ hostedButtonId: HOSTED_BUTTON_ID }).render("#paypal-container");
+  sc.onerror = () => { $("payNote").textContent = "Could not load PayPal. Check your connection and refresh the page."; };
+  document.head.appendChild(sc);
+  $("payNote").textContent = "Secure checkout by PayPal. After your payment is confirmed, your username and password will be emailed to you.";
+} else if (PAYMENT_URL) {
+  $("payBtn").classList.remove("hidden"); $("payBtn").onclick = () => window.open(PAYMENT_URL, "_blank", "noopener");
+  $("payNote").textContent = "You will be taken to a secure checkout page. After your payment is confirmed, your username and password will be emailed to you.";
+} else { $("payNote").textContent = "Online payment is not available yet. Please contact the exam administrator for access."; }
+$("haveLogin").onclick = () => show("login");
+$("backPay").onclick = () => show("pay");
+
+/* ---- Boot ---- */
+(function () {
+  if (!sessionStorage.getItem(AUTH)) return show("pay");
+  const saved = load();
+  if (saved && saved.finished) { S = saved; finish(); } else goIntro();
+})();
+</script>
+</body>
+</html>
